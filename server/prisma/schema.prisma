@@ -1,0 +1,167 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  MEMBER
+}
+
+enum AuthProvider {
+  LOCAL
+  GOOGLE
+  FACEBOOK
+  INSTAGRAM
+}
+
+enum ClassStatus {
+  OPEN
+  CLOSED
+  CANCELLED
+}
+
+enum BookingStatus {
+  BOOKED
+  CANCELLED
+}
+
+enum EnrollmentStatus {
+  ACTIVE
+  CANCELLED
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  CONVERTED
+}
+
+model User {
+  id           String       @id @default(cuid())
+  email        String       @unique
+  passwordHash String?
+  name         String
+  role         Role         @default(MEMBER)
+  bio          String?
+  avatarUrl    String?
+  phone        String?
+  provider     AuthProvider @default(LOCAL)
+  providerId   String?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  enrollments Enrollment[]
+  bookings    Booking[]
+  reminders   ReminderLog[]
+
+  @@index([provider, providerId])
+}
+
+model Program {
+  id          String   @id @default(cuid())
+  title       String
+  slug        String   @unique
+  description String
+  imageUrl    String?
+  category    String   @default("fitness") // fitness | dietary
+  price       Float    @default(0)
+  isPublished Boolean  @default(true)
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  classes     ClassSession[]
+  enrollments Enrollment[]
+}
+
+model ClassSession {
+  id        String      @id @default(cuid())
+  programId String
+  program   Program     @relation(fields: [programId], references: [id], onDelete: Cascade)
+  title     String
+  trainer   String
+  branch    String
+  room      String?
+  startsAt  DateTime
+  endsAt    DateTime
+  capacity  Int         @default(20)
+  status    ClassStatus @default(OPEN)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  bookings  Booking[]
+  reminders ReminderLog[]
+
+  @@index([startsAt])
+}
+
+model Enrollment {
+  id        String           @id @default(cuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  programId String
+  program   Program          @relation(fields: [programId], references: [id], onDelete: Cascade)
+  status    EnrollmentStatus @default(ACTIVE)
+  createdAt DateTime         @default(now())
+
+  @@unique([userId, programId])
+}
+
+model Booking {
+  id             String        @id @default(cuid())
+  userId         String
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  classSessionId String
+  classSession   ClassSession  @relation(fields: [classSessionId], references: [id], onDelete: Cascade)
+  status         BookingStatus @default(BOOKED)
+  createdAt      DateTime      @default(now())
+
+  @@unique([userId, classSessionId])
+}
+
+model Testimonial {
+  id          String   @id @default(cuid())
+  authorName  String
+  role        String?
+  avatarUrl   String?
+  quote       String
+  rating      Int      @default(5)
+  isPublished Boolean  @default(true)
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Lead {
+  id        String     @id @default(cuid())
+  name      String
+  email     String
+  phone     String?
+  interest  String?
+  message   String?
+  source    String     @default("website")
+  status    LeadStatus @default(NEW)
+  createdAt DateTime   @default(now())
+}
+
+model SiteContent {
+  key       String   @id
+  jsonValue Json
+  updatedAt DateTime @updatedAt
+}
+
+model ReminderLog {
+  id             String       @id @default(cuid())
+  classSessionId String
+  classSession   ClassSession @relation(fields: [classSessionId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sentAt         DateTime     @default(now())
+
+  @@unique([classSessionId, userId])
+}

@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: fitnessapp-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: fitness
+      POSTGRES_PASSWORD: fitness
+      POSTGRES_DB: fitnessapp
+    ports:
+      - "5432:5432"
+    volumes:
+      - fitness_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fitness -d fitnessapp"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  fitness_pgdata:
