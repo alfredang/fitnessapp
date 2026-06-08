@@ -322,7 +322,18 @@ export default function HomePage() {
           </div>
         </div>
         <div className="mx-auto mt-10 max-w-6xl border-t border-white/10 px-4 pt-6 text-center text-xs">
-          © {contact?.founded ?? 2018} PulseFit. Built with the Tertiary Infotech Academy stack.
+          <p>© {contact?.founded ?? 2018} PulseFit. Built with the Tertiary Infotech Academy stack.</p>
+          <p className="mt-1">
+            Powered by{' '}
+            <a
+              href="https://www.tertiaryinfotech.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-semibold text-white hover:text-brand-400"
+            >
+              Tertiary Infotech Academy Pte Ltd
+            </a>
+          </p>
         </div>
       </footer>
     </div>

@@ -19,6 +19,9 @@ export const env = {
   emailFrom: get('EMAIL_FROM', 'PulseFit <noreply@pulsefit.test>'),
   blobToken: process.env.BLOB_READ_WRITE_TOKEN || '',
   cronSecret: process.env.CRON_SECRET || '',
+  // Allow the simulated social-login flow even in production (for providers
+  // without real OAuth keys). Set SOCIAL_DEMO=true to enable.
+  socialDemo: process.env.SOCIAL_DEMO === 'true',
   google: {
     clientId: process.env.GOOGLE_CLIENT_ID || '',
     clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',

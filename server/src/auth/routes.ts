@@ -115,11 +115,14 @@ authRouter.post(
   })
 );
 
+// The simulated social-login flow is allowed outside production, or anywhere
+// SOCIAL_DEMO=true is set — so the buttons work even without real OAuth keys.
+const demoAllowed = env.socialDemo || env.nodeEnv !== 'production';
+
 // ── Which social providers are configured (drives the login buttons) ───────
-// `devMock` is true in non-prod when a provider has no real keys — the button
-// still works, simulating the login so the flow is fully testable.
+// `devMock` true means a provider without real keys still works via simulation.
 authRouter.get('/providers', (_req, res) => {
-  res.json({ ...socialEnabled, devMock: env.nodeEnv !== 'production' });
+  res.json({ ...socialEnabled, devMock: demoAllowed });
 });
 
 // Dev-only mock: lets the social buttons complete a real login flow without
@@ -145,8 +148,8 @@ async function devMockLogin(
 function mountSocial(provider: 'google' | 'facebook' | 'instagram', scope: string[]) {
   authRouter.get(`/${provider}`, asyncHandler(async (req, res, next) => {
     if (!socialEnabled[provider]) {
-      // No real keys: simulate the login in dev, otherwise show a clear message.
-      if (env.nodeEnv !== 'production') {
+      // No real keys: simulate the login when demo is allowed, else show a message.
+      if (demoAllowed) {
         await devMockLogin(provider, res);
         return res.redirect(`${env.clientUrl}/app`);
       }
