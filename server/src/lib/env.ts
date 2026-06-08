@@ -17,6 +17,8 @@ export const env = {
   cookieName: get('COOKIE_NAME', 'fitness_token'),
   resendApiKey: process.env.RESEND_API_KEY || '',
   emailFrom: get('EMAIL_FROM', 'PulseFit <noreply@pulsefit.test>'),
+  blobToken: process.env.BLOB_READ_WRITE_TOKEN || '',
+  cronSecret: process.env.CRON_SECRET || '',
   google: {
     clientId: process.env.GOOGLE_CLIENT_ID || '',
     clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',

@@ -16,13 +16,21 @@ import { leadsRouter } from './routes/leads.js';
 import { contentRouter } from './routes/content.js';
 import { usersRouter } from './routes/users.js';
 import { adminRouter } from './routes/admin.js';
+import { runReminderSweep } from './automation/reminders.js';
 
 export function createApp() {
   const app = express();
 
   app.use(
     cors({
-      origin: env.clientUrl,
+      // Allow the configured client URL plus any Vercel deployment domain
+      // (production + previews). Same-origin requests have no Origin header.
+      origin: (origin, cb) => {
+        if (!origin || origin === env.clientUrl || /\.vercel\.app$/.test(new URL(origin).hostname)) {
+          return cb(null, true);
+        }
+        cb(null, false);
+      },
       credentials: true,
     })
   );
@@ -36,6 +44,24 @@ export function createApp() {
   app.use('/uploads', express.static(path.resolve(process.cwd(), 'uploads')));
 
   app.get('/api/health', (_req, res) => res.json({ ok: true }));
+
+  // Vercel Cron hits this hourly (see vercel.json) to run the reminder sweep —
+  // the serverless replacement for the local node-cron scheduler. When
+  // CRON_SECRET is set, Vercel sends it as a Bearer token; reject anything else.
+  app.get('/api/cron/reminders', async (req, res, next) => {
+    try {
+      if (env.cronSecret) {
+        const auth = req.headers.authorization;
+        if (auth !== `Bearer ${env.cronSecret}`) {
+          return res.status(401).json({ error: 'Unauthorized' });
+        }
+      }
+      const sent = await runReminderSweep();
+      res.json({ ok: true, sent });
+    } catch (err) {
+      next(err);
+    }
+  });
 
   app.use('/api/auth', authRouter);
   app.use('/api/programs', programsRouter);

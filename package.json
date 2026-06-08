@@ -10,6 +10,7 @@
   "scripts": {
     "dev": "concurrently -n server,client -c blue,magenta \"npm run dev -w server\" \"npm run dev -w client\"",
     "build": "npm run build -w server && npm run build -w client",
+    "vercel-build": "npm run db:generate -w server && npm run db:deploy -w server && npm run build -w server && npm run build -w client",
     "db:up": "docker-compose up -d",
     "db:down": "docker-compose down",
     "db:migrate": "npm run db:migrate -w server",

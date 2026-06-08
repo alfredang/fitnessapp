@@ -12,24 +12,42 @@ import { requireAuth, requireRole } from '../middleware/auth.js';
 
 export const usersRouter = Router();
 
-const uploadsDir = path.resolve(process.cwd(), 'uploads');
-fs.mkdirSync(uploadsDir, { recursive: true });
-
-const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => cb(null, uploadsDir),
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname).toLowerCase();
-    cb(null, `${req.user!.id}-${Date.now()}${ext}`);
-  },
-});
+// Hold the uploaded file in memory; we then persist it to Vercel Blob in
+// production, or to the local uploads/ folder during development.
 const upload = multer({
-  storage,
+  storage: multer.memoryStorage(),
   limits: { fileSize: 4 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
     if (/^image\/(png|jpe?g|webp|gif)$/.test(file.mimetype)) cb(null, true);
     else cb(new Error('Only image files are allowed'));
   },
 });
+
+// Persist an avatar and return its public URL. Uses Vercel Blob when a token is
+// configured (production); otherwise falls back to the local uploads/ folder.
+async function storeAvatar(
+  userId: string,
+  file: Express.Multer.File
+): Promise<string> {
+  const ext = path.extname(file.originalname).toLowerCase() || '.png';
+  const key = `avatars/${userId}-${Date.now()}${ext}`;
+
+  if (env.blobToken) {
+    const { put } = await import('@vercel/blob');
+    const blob = await put(key, file.buffer, {
+      access: 'public',
+      contentType: file.mimetype,
+      token: env.blobToken,
+    });
+    return blob.url;
+  }
+
+  const uploadsDir = path.resolve(process.cwd(), 'uploads');
+  fs.mkdirSync(uploadsDir, { recursive: true });
+  const filename = `${userId}-${Date.now()}${ext}`;
+  fs.writeFileSync(path.join(uploadsDir, filename), file.buffer);
+  return `${env.serverUrl}/uploads/${filename}`;
+}
 
 function publicUser(u: User) {
   return {
@@ -67,7 +85,7 @@ usersRouter.post(
   upload.single('avatar'),
   asyncHandler(async (req, res) => {
     if (!req.file) throw badRequest('No image uploaded');
-    const avatarUrl = `${env.serverUrl}/uploads/${req.file.filename}`;
+    const avatarUrl = await storeAvatar(req.user!.id, req.file);
     const user = await prisma.user.update({
       where: { id: req.user!.id },
       data: { avatarUrl },

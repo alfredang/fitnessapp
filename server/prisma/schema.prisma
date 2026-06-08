@@ -1,10 +1,15 @@
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  // "native" for local dev; "rhel-openssl-3.0.x" for Vercel's serverless runtime.
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  // Pooled connection (PgBouncer) for the serverless app at runtime.
+  url       = env("DATABASE_URL")
+  // Direct (unpooled) connection used by Prisma Migrate.
+  directUrl = env("DIRECT_URL")
 }
 
 enum Role {
